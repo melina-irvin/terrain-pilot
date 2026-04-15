@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terrain Pilot — Project Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F2F0ED;
+  --surface:#FAFAF8;
+  --surface2:#FFFFFF;
+  --input:#ECEAE7;
+  --ink:#1C1C1A;
+  --ink2:#2E2C29;
+  --ink3:#6C6A65;
+  --ink4:#AEABA4;
+  --ink5:#D4D1CB;
+  --rule:#E2DED9;
+  --gold:#8A7355;
+  --gold2:#A08060;
+  --gold3:#C4A96A;
+  --gold-light:#F5EFE6;
+  --red:#8B2020;
+  --red-light:#FDF5F5;
+  --green:#2D5A2D;
+  --green-light:#F0F7F0;
+}
+html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;font-weight:400;font-size:14px;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+/* ── MAP ── */
+#map{position:fixed;inset:0;z-index:1}
+
+/* ── TOP BAR ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:52px;
+  background:rgba(250,250,248,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--rule);
+  display:flex;align-items:center;padding:0 20px;gap:16px;
+}
+#topbar-brand{
+  font-size:15px;font-weight:500;color:var(--ink);letter-spacing:-.01em;
+}
+#topbar-brand span{color:var(--gold);font-weight:400}
+#topbar-divider{width:1px;height:18px;background:var(--rule)}
+#topbar-sub{font-size:12px;color:var(--ink4)}
+#topbar-spacer{flex:1}
+#admin-toggle-btn{
+  font-size:11px;font-weight:500;
+  color:var(--ink3);background:none;
+  border:1px solid var(--rule);border-radius:5px;
+  padding:5px 12px;cursor:pointer;
+  transition:all .15s;
+}
+#admin-toggle-btn:hover{border-color:var(--gold);color:var(--gold)}
+#admin-toggle-btn.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+#project-count{font-size:11px;color:var(--ink4);font-family:'DM Mono',monospace}
+
+/* ── POPUP CARD ── */
+.leaflet-popup-content-wrapper{
+  border-radius:10px!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.08)!important;
+  border:1px solid var(--rule)!important;
+  padding:0!important;
+  overflow:hidden;
+  min-width:300px;
+  max-width:360px;
+}
+.leaflet-popup-content{margin:0!important;width:100%!important}
+.leaflet-popup-tip-container{display:none}
+.leaflet-popup-close-button{
+  top:10px!important;right:12px!important;
+  color:var(--ink4)!important;font-size:18px!important;
+  z-index:10;
+}
+
+.popup-card{}
+.popup-header{
+  background:var(--gold);
+  padding:16px 20px 14px;
+  position:relative;
+}
+.popup-region{
+  font-size:10px;font-weight:500;letter-spacing:.12em;
+  text-transform:uppercase;color:rgba(255,255,255,.75);
+  margin-bottom:4px;
+}
+.popup-title{
+  font-size:16px;font-weight:500;color:#fff;
+  line-height:1.25;
+}
+.popup-body{padding:16px 20px 20px;background:var(--surface2)}
+.popup-meta{
+  display:flex;gap:16px;margin-bottom:14px;
+  padding-bottom:14px;border-bottom:1px solid var(--rule);
+}
+.popup-meta-item{display:flex;flex-direction:column;gap:2px}
+.popup-meta-label{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4)}
+.popup-meta-value{font-size:12px;color:var(--ink2);font-family:'DM Mono',monospace}
+.popup-section-title{
+  font-size:10px;font-weight:500;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink4);
+  margin-bottom:8px;margin-top:12px;
+}
+.popup-section-title:first-of-type{margin-top:0}
+.popup-layers{display:flex;flex-wrap:wrap;gap:5px}
+.popup-layer-tag{
+  font-size:11px;background:var(--gold-light);
+  color:var(--gold2);border-radius:4px;
+  padding:3px 9px;font-weight:500;
+}
+.popup-sources{display:flex;flex-wrap:wrap;gap:5px}
+.popup-source-tag{
+  font-size:11px;background:var(--input);
+  color:var(--ink3);border-radius:4px;
+  padding:3px 9px;
+}
+.popup-notes{
+  font-size:12px;color:var(--ink3);
+  line-height:1.65;margin-top:4px;
+}
+
+/* ── ADMIN PANEL ── */
+#admin-panel{
+  position:fixed;top:52px;right:0;bottom:0;
+  width:420px;z-index:200;
+  background:var(--surface);
+  border-left:1px solid var(--rule);
+  display:flex;flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:-8px 0 32px rgba(0,0,0,.08);
+}
+#admin-panel.open{transform:translateX(0)}
+
+#admin-header{
+  display:flex;flex-direction:column;flex-shrink:0;
+}
+.admin-tab{
+  flex:1;padding:10px;font-size:12px;font-weight:500;
+  background:none;border:none;cursor:pointer;
+  color:var(--ink4);border-bottom:2px solid transparent;
+  transition:all .15s;
+}
+.admin-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.admin-tab:hover{color:var(--ink)}
+#admin-header-title{font-size:14px;font-weight:500;color:var(--ink)}
+#admin-header-spacer{flex:1}
+#admin-add-btn{
+  font-size:11px;font-weight:500;
+  background:var(--ink);color:#fff;
+  border:none;border-radius:6px;
+  padding:7px 14px;cursor:pointer;
+  transition:background .15s;
+}
+#admin-add-btn:hover{background:var(--ink2)}
+
+#admin-list{
+  flex:1;overflow-y:auto;padding:12px 0;
+}
+#admin-requests{
+  flex:1;overflow-y:auto;
+  display:none;
+  flex-direction:column;
+}
+
+.admin-project-item{
+  padding:12px 20px;
+  border-bottom:1px solid var(--rule);
+  cursor:pointer;
+  transition:background .12s;
+  display:flex;align-items:center;gap:12px;
+}
+.admin-project-item:hover{background:var(--bg)}
+.admin-project-item:last-child{border-bottom:none}
+.admin-item-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  background:var(--gold);
+}
+.admin-item-info{flex:1;min-width:0}
+.admin-item-name{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-item-region{font-size:11px;color:var(--ink4);margin-top:1px}
+.admin-item-actions{display:flex;gap:6px;flex-shrink:0}
+.admin-edit-btn,.admin-delete-btn{
+  font-size:11px;border:1px solid var(--rule);
+  border-radius:4px;padding:4px 10px;cursor:pointer;
+  background:none;transition:all .12s;
+}
+.admin-edit-btn{color:var(--ink3)}
+.admin-edit-btn:hover{border-color:var(--gold);color:var(--gold)}
+.admin-delete-btn{color:var(--ink4)}
+.admin-delete-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-light)}
+
+#admin-empty{
+  padding:40px 20px;text-align:center;
+  font-size:13px;color:var(--ink4);line-height:1.7;
+}
+
+/* ── PROJECT EDITOR ── */
+#editor-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(28,28,26,.45);
+  backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;
+}
+#editor-overlay.open{display:flex}
+#editor-modal{
+  background:var(--surface2);
+  border-radius:12px;
+  width:560px;max-width:95vw;
+  max-height:90vh;
+  overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,.18);
+}
+#editor-modal-header{
+  padding:20px 24px 18px;
+  border-bottom:1px solid var(--rule);
+  display:flex;align-items:center;
+  position:sticky;top:0;background:var(--surface2);z-index:1;
+}
+#editor-modal-title{font-size:15px;font-weight:500;color:var(--ink)}
+#editor-close{
+  margin-left:auto;width:28px;height:28px;
+  border:none;background:none;cursor:pointer;
+  font-size:18px;color:var(--ink4);
+  display:flex;align-items:center;justify-content:center;
+  border-radius:4px;
+}
+#editor-close:hover{background:var(--input);color:var(--ink)}
+#editor-body{padding:20px 24px 24px;display:flex;flex-direction:column;gap:16px}
+
+.field{display:flex;flex-direction:column;gap:5px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-label{
+  font-size:11px;font-weight:500;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink4);
+}
+.field input,.field textarea,.field select{
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;color:var(--ink);
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:6px;padding:9px 12px;
+  outline:none;width:100%;
+  transition:border-color .15s;
+  resize:vertical;
+  -webkit-appearance:none;appearance:none;
+}
+.field select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23AEABA4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:32px;cursor:pointer;
+}
+.field input:focus,.field textarea:focus,.field select:focus{
+  border-color:var(--gold);background:#fff;
+}
+.field input::placeholder,.field textarea::placeholder{color:var(--ink5)}
+
+.field-hint{font-size:11px;color:var(--ink4);margin-top:2px}
+
+.coord-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+}
+.coord-grid .coord-label{
+  font-size:10px;color:var(--ink4);margin-bottom:3px;font-weight:500;letter-spacing:.06em;
+}
+
+.tags-input-wrap{
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:6px;padding:6px 8px;
+  min-height:40px;cursor:text;
+  display:flex;flex-wrap:wrap;gap:5px;align-items:center;
+  transition:border-color .15s;
+}
+.tags-input-wrap:focus-within{border-color:var(--gold);background:#fff}
+.tag-item{
+  background:var(--gold-light);color:var(--gold2);
+  border-radius:4px;padding:3px 8px;font-size:12px;
+  display:flex;align-items:center;gap:5px;
+  font-weight:500;
+}
+.tag-item.source-tag{background:var(--surface);color:var(--ink3);border:1px solid var(--rule)}
+.tag-remove{
+  cursor:pointer;color:inherit;opacity:.6;
+  font-size:14px;line-height:1;
+  background:none;border:none;padding:0;
+}
+.tag-remove:hover{opacity:1}
+.tags-ghost-input{
+  border:none;outline:none;background:transparent;
+  font-family:'DM Sans',sans-serif;font-size:13px;
+  color:var(--ink);min-width:80px;flex:1;padding:2px 4px;
+}
+.tags-ghost-input::placeholder{color:var(--ink5)}
+
+.color-row{display:flex;gap:8px;flex-wrap:wrap}
+.color-swatch{
+  width:28px;height:28px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:border-color .12s;
+  flex-shrink:0;
+}
+.color-swatch.selected{border-color:var(--ink)!important}
+
+#editor-footer{
+  padding:16px 24px;border-top:1px solid var(--rule);
+  display:flex;gap:10px;justify-content:flex-end;
+  position:sticky;bottom:0;background:var(--surface2);
+}
+.btn-cancel{
+  font-size:13px;color:var(--ink3);background:none;
+  border:1px solid var(--rule);border-radius:7px;
+  padding:9px 18px;cursor:pointer;
+  transition:all .12s;
+}
+.btn-cancel:hover{border-color:var(--ink4);color:var(--ink)}
+.btn-save{
+  font-size:13px;font-weight:500;color:#fff;
+  background:var(--ink);border:none;border-radius:7px;
+  padding:9px 22px;cursor:pointer;
+  transition:background .12s;
+}
+.btn-save:hover{background:var(--ink2)}
+
+/* ── PASSWORD MODAL ── */
+#pw-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(28,28,26,.5);
+  backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;
+}
+#pw-overlay.open{display:flex}
+#pw-modal{
+  background:var(--surface2);
+  border-radius:12px;width:360px;
+  padding:28px;
+  box-shadow:0 24px 64px rgba(0,0,0,.2);
+  text-align:center;
+}
+#pw-title{font-size:16px;font-weight:500;color:var(--ink);margin-bottom:6px}
+#pw-sub{font-size:13px;color:var(--ink4);margin-bottom:20px}
+#pw-input{
+  width:100%;font-family:'DM Sans',sans-serif;
+  font-size:14px;color:var(--ink);
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:7px;padding:10px 14px;
+  outline:none;text-align:center;letter-spacing:.15em;
+  transition:border-color .15s;margin-bottom:14px;
+}
+#pw-input:focus{border-color:var(--gold);background:#fff}
+#pw-error{font-size:12px;color:var(--red);margin-bottom:10px;min-height:16px}
+#pw-submit{
+  width:100%;font-size:13px;font-weight:500;
+  color:#fff;background:var(--ink);border:none;
+  border-radius:7px;padding:11px;cursor:pointer;
+  transition:background .12s;
+}
+#pw-submit:hover{background:var(--ink2)}
+#pw-cancel{
+  margin-top:10px;font-size:12px;color:var(--ink4);
+  background:none;border:none;cursor:pointer;
+  transition:color .12s;
+}
+#pw-cancel:hover{color:var(--ink)}
+
+/* ── EXPORT BTN ── */
+#export-btn{
+  font-size:11px;font-weight:500;
+  color:var(--gold);background:var(--gold-light);
+  border:1px solid var(--gold2);border-radius:5px;
+  padding:5px 12px;cursor:pointer;
+  transition:all .15s;
+}
+#export-btn:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
+
+/* ── LEAFLET OVERRIDES ── */
+.leaflet-control-zoom{border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.1)!important}
+.leaflet-control-zoom a{
+  background:var(--surface2)!important;color:var(--ink)!important;
+  border:none!important;border-bottom:1px solid var(--rule)!important;
+  font-weight:400!important;font-size:16px!important;
+}
+.leaflet-control-zoom a:last-child{border-bottom:none!important}
+.leaflet-control-zoom a:hover{background:var(--bg)!important}
+.leaflet-attribution-flag{display:none!important}
+.leaflet-control-attribution{
+  background:rgba(250,250,248,.85)!important;
+  font-size:10px!important;color:var(--ink4)!important;
+  backdrop-filter:blur(4px);
+}
+
+
+/* ── STATS BAR ── */
+#stats-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  height:38px;
+  background:rgba(250,250,248,0.95);
+  backdrop-filter:blur(12px);
+  border-top:1px solid var(--rule);
+  display:flex;align-items:center;padding:0 16px;gap:20px;
+}
+.stat-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink4)}
+.stat-value{font-weight:500;color:var(--ink2);font-family:'DM Mono',monospace}
+.stat-divider{width:1px;height:14px;background:var(--rule)}
+
+/* ── SEARCH + FILTER BAR ── */
+#search-filter-bar{
+  position:fixed;top:52px;left:0;z-index:99;
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;
+  background:rgba(250,250,248,0.95);
+  backdrop-filter:blur(12px);
+  border-right:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+  border-radius:0 0 10px 0;
+}
+#search-input{
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:12px;color:var(--ink);
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:6px;padding:5px 10px;
+  outline:none;width:180px;
+  transition:border-color .15s;
+}
+#search-input:focus{border-color:var(--gold);background:#fff}
+#search-input::placeholder{color:var(--ink5)}
+.filter-select{
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:12px;color:var(--ink3);
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:6px;padding:5px 24px 5px 8px;
+  outline:none;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23AEABA4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;
+  transition:border-color .15s;
+}
+.filter-select:focus{border-color:var(--gold)}
+#clear-filters-btn{
+  font-size:11px;color:var(--ink4);background:none;
+  border:none;cursor:pointer;padding:4px 6px;
+  transition:color .12s;display:none;
+}
+#clear-filters-btn:hover{color:var(--gold)}
+
+/* ── STATUS BADGE ── */
+.status-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:500;letter-spacing:.06em;
+  padding:3px 8px;border-radius:20px;
+  text-transform:uppercase;
+}
+.status-inprogress{background:#FEF3E2;color:#B07D1A}
+.status-complete{background:var(--green-light,#F0F7F0);color:var(--green,#2D5A2D)}
+.status-upcoming{background:#EAF2FA;color:#2D5A6B}
+.status-paused{background:#F5F0E8;color:#7A5A2A}
+
+/* ── IN PROGRESS FIELD ── */
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--input);
+  border-radius:6px;border:1px solid var(--rule);
+}
+.toggle-row-label{font-size:13px;color:var(--ink2)}
+.toggle-switch{
+  position:relative;width:36px;height:20px;cursor:pointer;
+}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-track{
+  position:absolute;inset:0;background:var(--rule);
+  border-radius:20px;transition:background .2s;
+}
+.toggle-switch input:checked + .toggle-track{background:var(--gold)}
+.toggle-thumb{
+  position:absolute;top:3px;left:3px;
+  width:14px;height:14px;background:#fff;
+  border-radius:50%;transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.15);
+}
+.toggle-switch input:checked ~ .toggle-thumb{transform:translateX(16px)}
+
+
+
+
+#user-mgmt{padding:12px 0}
+.user-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 20px;border-bottom:1px solid var(--rule);
+}
+.user-item:last-child{border-bottom:none}
+.user-email{flex:1;font-size:13px;color:var(--ink2)}
+.user-role{font-size:11px;color:var(--ink4);
+  background:var(--input);border-radius:4px;padding:2px 8px}
+.user-delete-btn{
+  font-size:11px;border:1px solid var(--rule);
+  border-radius:4px;padding:4px 10px;cursor:pointer;
+  background:none;color:var(--ink4);transition:all .12s;
+}
+.user-delete-btn:hover{border-color:#8B2020;color:#8B2020}
+#user-add-form{
+  padding:12px 20px;border-top:1px solid var(--rule);
+  display:flex;flex-direction:column;gap:8px;
+}
+.user-add-row{display:flex;gap:8px}
+.user-add-input{
+  flex:1;font-family:'DM Sans',sans-serif;
+  font-size:12px;color:var(--ink);
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:6px;padding:7px 10px;outline:none;
+  transition:border-color .15s;
+}
+.user-add-input:focus{border-color:var(--gold);background:#fff}
+.user-add-input::placeholder{color:var(--ink5)}
+#user-add-btn{
+  font-size:12px;font-weight:500;
+  background:var(--ink);color:#fff;
+  border:none;border-radius:6px;
+  padding:7px 14px;cursor:pointer;
+  white-space:nowrap;
+}
+#user-add-error{font-size:11px;color:#8B2020;min-height:14px}
+
+
+/* ── REQUEST PANEL ── */
+#basemap-toggle-btn{
+  font-size:11px;font-weight:500;
+  color:var(--ink3);background:var(--input);
+  border:1px solid var(--rule);border-radius:5px;
+  padding:5px 12px;cursor:pointer;
+  transition:all .15s;margin-right:4px;
+}
+#basemap-toggle-btn:hover{border-color:var(--gold);color:var(--gold)}
+#basemap-toggle-btn.imagery{background:var(--ink);color:#fff;border-color:var(--ink)}
+#request-btn{
+  font-size:11px;font-weight:500;
+  color:#fff;background:var(--gold);
+  border:none;border-radius:5px;
+  padding:5px 12px;cursor:pointer;
+  transition:background .15s;margin-right:4px;
+}
+#request-btn:hover{background:var(--gold2,#A08560)}
+#request-panel{
+  position:fixed;top:0;right:-440px;width:420px;height:100vh;
+  z-index:501;
+  background:var(--surface2);
+  border-left:1px solid var(--rule);
+  display:flex;flex-direction:column;
+  transition:right .25s cubic-bezier(.4,0,.2,1);
+  box-shadow:-4px 0 24px rgba(0,0,0,.08);
+}
+#request-panel.open{right:0}
+#request-panel-header{
+  display:flex;align-items:center;
+  padding:16px 20px;
+  border-bottom:1px solid var(--rule);
+  flex-shrink:0;
+}
+#request-panel-title{
+  flex:1;font-size:14px;font-weight:500;color:var(--ink);
+}
+#request-panel-close{
+  background:none;border:none;cursor:pointer;
+  font-size:14px;color:var(--ink4);padding:4px;
+  transition:color .12s;
+}
+#request-panel-close:hover{color:var(--ink)}
+#request-panel-body{
+  flex:1;overflow-y:auto;padding:16px 20px 24px;
+}
+.req-section-label{
+  font-size:10px;font-weight:500;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink4);
+  margin-bottom:8px;
+}
+.req-field{margin-bottom:10px}
+.req-field label{
+  display:block;font-size:11px;font-weight:500;
+  color:var(--ink3);margin-bottom:4px;
+}
+.req-field input,.req-field select,.req-field textarea{
+  width:100%;font-family:'DM Sans',system-ui,sans-serif;
+  font-size:12px;color:var(--ink);
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:6px;padding:7px 10px;outline:none;
+  transition:border-color .15s;resize:vertical;
+  -webkit-appearance:none;appearance:none;
+}
+.req-field input:focus,.req-field select:focus,.req-field textarea:focus{
+  border-color:var(--gold);background:#fff;
+}
+.req-field select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23AEABA4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+  padding-right:28px;cursor:pointer;
+}
+.req-coords{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+}
+.req-coord-field label{
+  display:block;font-size:11px;font-weight:500;
+  color:var(--ink3);margin-bottom:4px;
+}
+.req-coord-field input{
+  width:100%;font-family:'DM Mono','Consolas',monospace;
+  font-size:12px;color:var(--ink);
+  background:var(--input);border:1px solid var(--rule);
+  border-radius:6px;padding:7px 10px;outline:none;
+  transition:border-color .15s;
+}
+.req-coord-field input:focus{border-color:var(--gold);background:#fff}
+.req-checks{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+}
+.req-check{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 10px;border-radius:6px;
+  border:1px solid var(--rule);cursor:pointer;
+  font-size:12px;color:var(--ink3);
+  transition:all .12s;user-select:none;
+}
+.req-check:hover{border-color:var(--gold);color:var(--ink)}
+.req-check.checked{
+  background:var(--gold-light,#F5EFE6);
+  border-color:var(--gold);color:var(--gold2,#7A6345);font-weight:500;
+}
+.req-check input{display:none}
+.req-check-mark{
+  width:13px;height:13px;border-radius:3px;flex-shrink:0;
+  border:1.5px solid var(--ink5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;transition:all .12s;
+}
+.req-check.checked .req-check-mark{
+  background:var(--gold);border-color:var(--gold);color:#fff;
+}
+#req-submit-btn{
+  width:100%;margin-top:16px;
+  font-size:13px;font-weight:500;color:#fff;
+  background:var(--ink);border:none;border-radius:8px;
+  padding:12px;cursor:pointer;transition:background .15s;
+}
+#req-submit-btn:hover{background:var(--ink2,#2E2C29)}
+
+/* ── REQUESTS TAB (admin) ── */
+.request-item{
+  padding:14px 20px;border-bottom:1px solid var(--rule);
+  cursor:pointer;transition:background .1s;
+  display:block;width:100%;
+}
+.request-item:hover{background:var(--input)}
+.request-item-name{font-size:13px;font-weight:500;color:var(--ink)}
+.request-item-meta{font-size:11px;color:var(--ink4);margin-top:2px}
+.request-status{
+  display:inline-block;font-size:10px;font-weight:500;
+  padding:2px 8px;border-radius:20px;margin-left:6px;
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.rs-new{background:#EAF2FA;color:#2D5A6B}
+.rs-review{background:#FEF3E2;color:#B07D1A}
+.rs-accepted{background:#F0F7F0;color:#2D5A2D}
+.rs-declined{background:#FAECE7;color:#8B2020}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--ink5);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink4)}
+</style>
+</head>
+<body>
+
+<!-- Request Terrain panel -->
+<div id="request-overlay" onclick="if(event.target===this)closeRequestPanel()" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.25)"></div>
+<div id="request-panel">
+  <div id="request-panel-header">
+    <div id="request-panel-title">Request a Terrain Build</div>
+    <button id="request-panel-close" onclick="closeRequestPanel()">&#10005;</button>
+  </div>
+  <div id="request-panel-body">
+    <div class="req-section-label">Contact Information</div>
+    <div class="req-field"><label>Name</label><input type="text" id="req-name" placeholder="Full name"></div>
+    <div class="req-field"><label>Organization</label><input type="text" id="req-org" placeholder="Unit / Organization"></div>
+    <div class="req-field"><label>Email</label><input type="email" id="req-email" placeholder="your@email.mil"></div>
+    <div class="req-field"><label>Phone</label><input type="text" id="req-phone" placeholder="Optional"></div>
+
+    <div class="req-section-label" style="margin-top:16px">Area of Interest</div>
+    <div class="req-field"><label>Project / Location Name</label><input type="text" id="req-location" placeholder="e.g. Seoul Metropolitan Area"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button id="draw-aoi-btn" onclick="startAOIDraw()" style="flex:1;font-size:12px;font-weight:500;
+        color:var(--ink);background:var(--input);border:1px solid var(--rule);
+        border-radius:7px;padding:9px;cursor:pointer;
+        transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>&#9632;</span> Draw AOI on Map
+      </button>
+      <button onclick="clearAOI()" style="font-size:12px;font-weight:500;
+        color:var(--ink4);background:none;border:1px solid var(--rule);
+        border-radius:7px;padding:9px 14px;cursor:pointer;
+        transition:all .15s;white-space:nowrap"
+        onmouseover="this.style.borderColor='#8B2020';this.style.color='#8B2020'"
+        onmouseout="this.style.borderColor='var(--rule)';this.style.color='var(--ink4)'">
+        Clear AOI
+      </button>
+    </div>
+    <div id="draw-aoi-hint" style="display:none;font-size:11px;color:var(--gold);text-align:center;margin-bottom:8px;font-weight:500">
+      Click and drag on the map to draw your AOI. Press Escape to cancel.
+    </div>
+    <div class="req-coords">
+      <div class="req-coord-field"><label>North</label><input type="number" id="req-north" onblur="snapCoordField(this)" placeholder="e.g. 37.7" step="any"></div>
+      <div class="req-coord-field"><label>East</label><input type="number" id="req-east" onblur="snapCoordField(this)" placeholder="e.g. 127.5" step="any"></div>
+      <div class="req-coord-field"><label>South</label><input type="number" id="req-south" onblur="snapCoordField(this)" placeholder="e.g. 36.9" step="any"></div>
+      <div class="req-coord-field"><label>West</label><input type="number" id="req-west" onblur="snapCoordField(this)" placeholder="e.g. 126.5" step="any"></div>
+    </div>
+    <div style="font-size:11px;color:var(--ink4);margin-top:6px;line-height:1.5">
+      &#9432; Coordinates are automatically rounded to the nearest 0.05° grid (e.g. 36.00, 36.05, 36.10).
+    </div>
+
+    <div class="req-section-label" style="margin-top:16px">Data Layers Needed</div>
+    <div class="req-checks" id="req-layers-grid"></div>
+
+    <div class="req-section-label" style="margin-top:16px">Priority / Timeline</div>
+    <div class="req-field">
+      <select id="req-priority">
+        <option value="">Select timeline...</option>
+        <option value="ASAP">ASAP</option>
+        <option value="30 days">Within 30 days</option>
+        <option value="60 days">Within 60 days</option>
+        <option value="90 days">Within 90 days</option>
+        <option value="No rush">No rush</option>
+      </select>
+    </div>
+
+    <div class="req-section-label" style="margin-top:16px">Additional Notes</div>
+    <div class="req-field"><textarea id="req-notes" rows="3" placeholder="Any special requirements, simulation type, classification needs, etc."></textarea></div>
+
+    <div id="req-error" style="font-size:12px;color:#8B2020;min-height:16px;margin-top:8px"></div>
+    <button id="req-submit-btn" onclick="submitRequest()">Submit Request</button>
+    <div id="req-success" style="display:none;text-align:center;padding:24px 0">
+      <div style="font-size:32px;margin-bottom:12px">&#10003;</div>
+      <div style="font-size:15px;font-weight:500;color:var(--ink);margin-bottom:6px">Request Submitted</div>
+      <div style="font-size:13px;color:var(--ink4);margin-bottom:20px">The terrain team will be in touch.</div>
+      <button onclick="resetRequestForm()" style="font-size:12px;color:var(--ink4);background:none;border:1px solid var(--rule);border-radius:6px;padding:6px 16px;cursor:pointer">Submit another</button>
+    </div>
+  </div>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <div id="topbar-brand">Terrain <span>Pilot</span></div>
+  <div id="topbar-divider"></div>
+  <div id="topbar-sub">Project Portfolio</div>
+  <div id="topbar-spacer"></div>
+  <div id="project-count"></div>
+  <span id="sync-indicator" style="display:none;font-size:11px;color:var(--ink4);margin-right:8px">Saved</span>
+  <button id="export-btn" style="display:none" onclick="exportClientView()">Export Client View</button>
+  <button id="basemap-toggle-btn" onclick="toggleBasemap()" title="Toggle imagery">&#9782; Map</button>
+  <button id="request-btn" onclick="openRequestPanel()">Request Terrain</button>
+  <button id="admin-toggle-btn" onclick="promptAdmin()">Admin</button>
+</div>
+
+<!-- Search + Filter bar -->
+<div id="search-filter-bar">
+  <input id="search-input" type="text" placeholder="Search projects…" oninput="applyFilters()">
+  <select class="filter-select" id="filter-ccmd" onchange="applyFilters()">
+    <option value="">All Commands</option>
+    <option value="INDOPACOM">INDOPACOM</option>
+    <option value="EUCOM">EUCOM</option>
+    <option value="CENTCOM">CENTCOM</option>
+    <option value="NORTHCOM">NORTHCOM</option>
+    <option value="SOUTHCOM">SOUTHCOM</option>
+    <option value="AFRICOM">AFRICOM</option>
+    <option value="SOCOM">SOCOM</option>
+    <option value="TRANSCOM">TRANSCOM</option>
+    <option value="STRATCOM">STRATCOM</option>
+    <option value="CYBERCOM">CYBERCOM</option>
+    <option value="SPACECOM">SPACECOM</option>
+  </select>
+  <select class="filter-select" id="filter-status" onchange="applyFilters()">
+    <option value="">All Status</option>
+    <option value="complete">Complete</option>
+    <option value="inprogress">In Progress</option>
+    <option value="upcoming">Upcoming</option>
+    <option value="paused">On Pause</option>
+  </select>
+  <button id="clear-filters-btn" onclick="clearFilters()">✕ Clear</button>
+</div>
+
+<!-- Stats bar -->
+<div id="stats-bar">
+  <div class="stat-item">Total <span class="stat-value" id="stat-total">0</span></div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">Complete <span class="stat-value" id="stat-complete">0</span></div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">In Progress <span class="stat-value" id="stat-inprogress">0</span></div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">Upcoming <span class="stat-value" id="stat-upcoming">0</span></div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">On Pause <span class="stat-value" id="stat-paused">0</span></div>
+  <div class="stat-divider"></div>
+  <div class="stat-item" id="stat-ccmd-breakdown"></div>
+</div>
+
+<!-- Admin panel -->
+<div id="admin-panel">
+  <div id="admin-header">
+    <div id="admin-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--rule);flex-shrink:0">
+      <button class="admin-tab active" id="tab-projects" onclick="switchAdminTab('projects')">Projects</button>
+      <button class="admin-tab" id="tab-requests" onclick="switchAdminTab('requests')">Requests <span id="req-badge" style="display:none;background:#2D5A6B;color:#fff;border-radius:10px;font-size:9px;padding:1px 5px;margin-left:3px"></span></button>
+    </div>
+    <div id="admin-tab-projects-header" style="padding:14px 20px 12px;display:flex;align-items:center;border-bottom:1px solid var(--rule)">
+      <div id="admin-header-title">Projects</div>
+      <div style="flex:1"></div>
+      <button id="admin-add-btn" onclick="openEditor(null)">+ Add Project</button>
+    </div>
+    </div>
+  </div>
+  <div id="admin-list"></div>
+  <div id="admin-requests" style="display:none;flex:1;overflow-y:auto;flex-direction:column">
+    <div id="requests-list"></div>
+    <div id="request-detail" style="display:none;padding:16px 20px;border-top:1px solid var(--rule)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button onclick="backToRequestsList()" style="font-size:11px;color:var(--ink4);background:none;border:1px solid var(--rule);border-radius:5px;padding:4px 10px;cursor:pointer">&#8592; Back</button>
+        <div style="flex:1;font-size:13px;font-weight:500;color:var(--ink)" id="rd-title"></div>
+        <select id="rd-status" onchange="updateRequestStatus()" style="font-size:11px;padding:4px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--input);cursor:pointer">
+          <option value="new">New</option>
+          <option value="review">In Review</option>
+          <option value="accepted">Accepted</option>
+          <option value="declined">Declined</option>
+        </select>
+      </div>
+      <div id="rd-actions" style="display:flex;gap:8px;margin-bottom:14px">
+        <button id="rd-add-to-map-btn" onclick="addRequestToMap()" style="flex:1;font-size:12px;font-weight:500;
+          color:#fff;background:var(--gold);border:none;border-radius:6px;
+          padding:8px;cursor:pointer;transition:background .15s">
+          + Add to Map as Project
+        </button>
+        <button onclick="deleteRequest()" style="font-size:12px;font-weight:500;
+          color:#8B2020;background:none;border:1px solid #e8b4b4;
+          border-radius:6px;padding:8px 14px;cursor:pointer;transition:all .15s"
+          onmouseover="this.style.background='#FCEBEB'"
+          onmouseout="this.style.background='none'">
+          Delete
+        </button>
+      </div>
+      <div id="rd-body" style="font-size:12px;color:var(--ink3);line-height:1.8"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Project editor modal -->
+<div id="editor-overlay">
+  <div id="editor-modal">
+    <div id="editor-modal-header">
+      <div id="editor-modal-title">Add Project</div>
+      <button id="editor-close" onclick="closeEditor()">&#x2715;</button>
+    </div>
+    <div id="editor-body">
+
+      <div class="field">
+        <div class="field-label">Project Name</div>
+        <input type="text" id="f-name" placeholder="e.g. Tokyo Bay Urban Terrain">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <div class="field-label">Combatant Command</div>
+          <select id="f-region">
+            <option value="">Select command…</option>
+            <option value="INDOPACOM">INDOPACOM</option>
+            <option value="EUCOM">EUCOM</option>
+            <option value="CENTCOM">CENTCOM</option>
+            <option value="NORTHCOM">NORTHCOM</option>
+            <option value="SOUTHCOM">SOUTHCOM</option>
+            <option value="AFRICOM">AFRICOM</option>
+            <option value="SOCOM">SOCOM</option>
+            <option value="TRANSCOM">TRANSCOM</option>
+            <option value="STRATCOM">STRATCOM</option>
+            <option value="CYBERCOM">CYBERCOM</option>
+            <option value="SPACECOM">SPACECOM</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Year</div>
+          <input type="text" id="f-year" placeholder="e.g. 2024">
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">AOI Extent — paste from ArcGIS Pro layer properties</div>
+        <div class="coord-grid">
+          <div>
+            <div class="coord-label">Top (North)</div>
+            <input type="number" id="f-north" placeholder="e.g. 36.2" step="any">
+          </div>
+          <div>
+            <div class="coord-label">Right (East)</div>
+            <input type="number" id="f-east" placeholder="e.g. 140.2" step="any">
+          </div>
+          <div>
+            <div class="coord-label">Bottom (South)</div>
+            <input type="number" id="f-south" placeholder="e.g. 34.8" step="any">
+          </div>
+          <div>
+            <div class="coord-label">Left (West)</div>
+            <input type="number" id="f-west" placeholder="e.g. 138.5" step="any">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Coverage — Geotiles (1° × 1°)</div>
+        <div class="field-row" style="align-items:end">
+          <div>
+            <div class="field-label" style="margin-bottom:5px">Number of tiles</div>
+            <input type="number" id="f-tiles" min="0" placeholder="e.g. 12" oninput="calcCoverage()">
+          </div>
+          <div>
+            <div class="field-label" style="margin-bottom:5px">Calculated area</div>
+            <input type="text" id="f-sqkm" readonly placeholder="—"
+                   style="background:var(--rule);cursor:default;color:var(--ink3)">
+          </div>
+        </div>
+        <div class="field-hint">Each 1° × 1° tile ≈ 12,321 km² at the equator — adjusted per latitude.</div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Data Layers</div>
+        <div class="tags-input-wrap" id="layers-wrap" onclick="focusTagInput('layers-input')">
+          <input class="tags-ghost-input" id="layers-input" placeholder="Type a layer, press Enter…">
+        </div>
+        <div class="field-hint">e.g. Roads, Buildings, Land Cover, Canopy Height, DEM</div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Data Sources</div>
+        <div class="tags-input-wrap" id="sources-wrap" onclick="focusTagInput('sources-input')">
+          <input class="tags-ghost-input" id="sources-input" placeholder="Type a source, press Enter…">
+        </div>
+        <div class="field-hint">e.g. OSM, Overture Maps, SRTM, Meta CHM, Impact Observatory</div>
+      </div>
+
+<div class="field">
+        <div class="field-label">Additional Notes</div>
+        <textarea id="f-notes" rows="2" placeholder="Key challenges, deliverable format, special processing notes…"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Project Status</div>
+        <select id="f-status">
+          <option value="complete">Complete</option>
+          <option value="inprogress">In Progress</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="paused">On Pause</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div class="field-label">AOI Color</div>
+        <div class="color-row" id="color-row"></div>
+      </div>
+
+    </div>
+    <div id="editor-footer">
+      <button class="btn-cancel" onclick="closeEditor()">Cancel</button>
+      <button class="btn-save" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password modal -->
+<div id="pw-overlay">
+  <div id="pw-modal">
+    <div id="pw-title">Admin Access</div>
+    <div id="pw-sub">Enter the admin password to manage projects</div>
+    <input type="password" id="pw-input" placeholder="••••••••"
+           onkeydown="if(event.key==='Enter')checkPassword()">
+    <div id="pw-error"></div>
+    <button id="pw-submit" onclick="checkPassword()">Unlock</button>
+    <br>
+    <button id="pw-cancel" onclick="closePw()">Cancel</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const ADMIN_PASSWORD = 'chrismurray';  // Change this
+// Projects are embedded directly in the file — use 'Save File' to persist changes
+
+const AOI_COLORS = [
+  {hex:'#8A7355',name:'Brass'},
+  {hex:'#2D5A6B',name:'Navy'},
+  {hex:'#4A7A4A',name:'Sage'},
+  {hex:'#8B4A2A',name:'Rust'},
+  {hex:'#5A4A7A',name:'Plum'},
+  {hex:'#2A5A5A',name:'Teal'},
+  {hex:'#6B3A3A',name:'Burgundy'},
+  {hex:'#3A5A2A',name:'Forest'},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let projects     = [];
+let adminMode    = false;
+let editingId    = null;
+let layerTags    = [];
+let sourceTags   = [];
+let mapLayers    = {};
+
+// ── Map init ──────────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [20, 20],
+  zoom: 3,
+  zoomControl: true,
+  attributionControl: true,
+  maxBounds: [[-90, -180], [90, 180]],
+  maxBoundsViscosity: 1.0,
+  minZoom: 2,
+  worldCopyJump: false,
+});
+
+const tileVoyager = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+  maxZoom: 19, subdomains: 'abcd',
+  attribution: '© OpenStreetMap contributors © CARTO'
+});
+
+const tileImagery = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19,
+  attribution: '© Esri, Maxar, Earthstar Geographics'
+});
+
+const tileLabels = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19,
+  attribution: ''
+});
+
+tileVoyager.addTo(map);
+let imageryMode = false;
+
+function toggleBasemap() {
+  const btn = document.getElementById('basemap-toggle-btn');
+  if (!imageryMode) {
+    map.removeLayer(tileVoyager);
+    tileImagery.addTo(map);
+    tileLabels.addTo(map);
+    btn.textContent = '\u2708 Imagery';
+    btn.classList.add('imagery');
+    imageryMode = true;
+  } else {
+    map.removeLayer(tileImagery);
+    map.removeLayer(tileLabels);
+    tileVoyager.addTo(map);
+    btn.textContent = '\u9782 Map';
+    btn.classList.remove('imagery');
+    imageryMode = false;
+  }
+}
+
+
+
+// ── User Auth ─────────────────────────────────────────────────────────────────
+// Users stored in Firebase under 'users' node: { email: hashedPassword }
+// Passwords are hashed with SHA-256 before storing/comparing.
+// Admin manages users from the Users tab in the admin panel.
+
+
+
+
+
+
+
+
+// ── User Management ───────────────────────────────────────────────────────────
+
+
+
+
+// Listen for user list changes in real time
+
+// ── Admin tab switching ───────────────────────────────────────────────────────
+function switchAdminTab(tab) {
+  // Update tab buttons
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  const tabBtn = document.getElementById('tab-' + tab);
+  if (tabBtn) tabBtn.classList.add('active');
+
+  // Hide all panels explicitly
+  document.getElementById('admin-list').style.display        = 'none';
+  document.getElementById('admin-requests').style.display    = 'none';
+
+  // Hide all headers
+  const ph = document.getElementById('admin-tab-projects-header');
+  if (ph) ph.style.display = 'none';
+
+  if (tab === 'projects') {
+    document.getElementById('admin-list').style.display = 'block';
+    if (ph) ph.style.display = 'flex';
+  } else if (tab === 'requests') {
+    const panel = document.getElementById('admin-requests');
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'column';
+    panel.style.flex = '1';
+    panel.style.overflowY = 'auto';
+    document.getElementById('requests-list').style.display = 'block';
+    document.getElementById('request-detail').style.display = 'none';
+    startRequestSync();
+  }
+}
+
+
+// ── Request Terrain ───────────────────────────────────────────────────────────
+const REQUEST_LAYERS = [
+  'Roads','Buildings','Landcover','Elevation',
+  'Runways','Canopy Height','Bathymetry','Railroads',
+  'Airports','Helipads','Vertical Obstructions','Tank Trails',
+  'Water Features','Military Installations','Ports & Harbors',
+  'Shipping Lanes','Energy Infrastructure',
+  'Power Grid / Transmission Lines','Oil & Gas Facilities',
+  'Soil & Terrain Classification',
+];
+
+let currentRequestId = null;
+
+function openRequestPanel() {
+  buildLayerCheckboxes();
+  document.getElementById('request-panel').classList.add('open');
+  document.getElementById('request-overlay').style.display = '';
+  document.getElementById('req-success').style.display = 'none';
+  document.getElementById('req-submit-btn').style.display = '';
+}
+
+function closeRequestPanel() {
+  document.getElementById('request-panel').classList.remove('open');
+  document.getElementById('request-overlay').style.display = 'none';
+  if (typeof drawLayer !== 'undefined' && drawLayer) {
+    map.removeLayer(drawLayer); drawLayer = null;
+  }
+}
+
+function buildLayerCheckboxes() {
+  const grid = document.getElementById('req-layers-grid');
+  if (grid.children.length) return;
+  REQUEST_LAYERS.forEach(layer => {
+    const lbl = document.createElement('label');
+    lbl.className = 'req-check';
+    lbl.innerHTML = `<input type="checkbox" value="${layer}">
+      <span class="req-check-mark"></span>
+      <span>${layer}</span>`;
+    lbl.addEventListener('click', function() {
+      const cb = this.querySelector('input');
+      cb.checked = !cb.checked;
+      this.classList.toggle('checked', cb.checked);
+      this.querySelector('.req-check-mark').textContent = cb.checked ? '✓' : '';
+    });
+    grid.appendChild(lbl);
+  });
+}
+
+function getSelectedLayers() {
+  return Array.from(document.querySelectorAll('#req-layers-grid input:checked'))
+    .map(cb => cb.value);
+}
+
+async function submitRequest() {
+  const name     = document.getElementById('req-name').value.trim();
+  const org      = document.getElementById('req-org').value.trim();
+  const email    = document.getElementById('req-email').value.trim();
+  const phone    = document.getElementById('req-phone').value.trim();
+  const location = document.getElementById('req-location').value.trim();
+  const north    = parseFloat(document.getElementById('req-north').value) || null;
+  const south    = parseFloat(document.getElementById('req-south').value) || null;
+  const east     = parseFloat(document.getElementById('req-east').value)  || null;
+  const west     = parseFloat(document.getElementById('req-west').value)  || null;
+  const priority = document.getElementById('req-priority').value;
+  const notes    = document.getElementById('req-notes').value.trim();
+  const layers   = getSelectedLayers();
+  const err      = document.getElementById('req-error');
+
+  if (!name || !org || !email) {
+    err.textContent = 'Please fill in your name, organization, and email.';
+    return;
+  }
+  if (!location) {
+    err.textContent = 'Please enter a project or location name.';
+    return;
+  }
+
+  err.textContent = '';
+  document.getElementById('req-submit-btn').disabled = true;
+  document.getElementById('req-submit-btn').textContent = 'Submitting...';
+
+  const request = {
+    id:        genId(),
+    submitted: new Date().toISOString(),
+    status:    'new',
+    name, org, email, phone,
+    location,
+    north, south, east, west,
+    layers, priority, notes,
+  };
+
+  try {
+    await REQUESTS_REF.child(request.id).set(request);
+    document.getElementById('req-submit-btn').style.display = 'none';
+    document.getElementById('req-success').style.display = '';
+    updateRequestBadge();
+  } catch(e) {
+    err.textContent = 'Submission failed — check your connection.';
+    document.getElementById('req-submit-btn').disabled = false;
+    document.getElementById('req-submit-btn').textContent = 'Submit Request';
+  }
+}
+
+function resetRequestForm() {
+  ['req-name','req-org','req-email','req-phone','req-location',
+   'req-north','req-south','req-east','req-west','req-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('req-priority').value = '';
+  document.querySelectorAll('#req-layers-grid .req-check').forEach(el => {
+    el.classList.remove('checked');
+    el.querySelector('input').checked = false;
+    el.querySelector('.req-check-mark').textContent = '';
+  });
+  document.getElementById('req-success').style.display = 'none';
+  document.getElementById('req-submit-btn').style.display = '';
+  document.getElementById('req-submit-btn').disabled = false;
+  document.getElementById('req-submit-btn').textContent = 'Submit Request';
+  document.getElementById('req-error').textContent = '';
+}
+
+
+// ── AOI Draw Tool ─────────────────────────────────────────────────────────────
+let drawActive    = false;
+let drawStart     = null;
+let drawRect      = null;
+let drawLayer     = null;
+
+function snapCoordField(input) {
+  const val = parseFloat(input.value);
+  if (isNaN(val)) return;
+  const snapped = snapTo005(val);
+  if (snapped !== val) {
+    input.value = snapped.toFixed(2);
+    // Flash the field gold briefly to indicate it was snapped
+    input.style.borderColor = 'var(--gold)';
+    input.style.background  = 'var(--gold-light,#F5EFE6)';
+    setTimeout(() => {
+      input.style.borderColor = '';
+      input.style.background  = '';
+    }, 800);
+  }
+}
+
+function snapTo005(val) {
+  return Math.round(val * 20) / 20;
+}
+
+function startAOIDraw() {
+  // Close the request panel temporarily so we can see the map
+  document.getElementById('request-panel').classList.remove('open');
+  document.getElementById('request-overlay').style.display = 'none';
+
+  // Show instruction overlay on map
+  const hint = document.createElement('div');
+  hint.id = 'draw-hint-overlay';
+  hint.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);' +
+    'z-index:400;background:rgba(28,28,26,.85);color:#fff;' +
+    'font-family:"DM Sans",system-ui,sans-serif;font-size:13px;font-weight:500;' +
+    'padding:10px 20px;border-radius:8px;pointer-events:none;backdrop-filter:blur(8px)';
+  hint.textContent = 'Click and drag to draw your AOI — coordinates snap to 0.05° grid';
+  document.body.appendChild(hint);
+
+  // Change cursor
+  document.getElementById('map').style.cursor = 'crosshair';
+  drawActive = true;
+
+  // Remove existing draw rect if any
+  if (drawLayer) { map.removeLayer(drawLayer); drawLayer = null; }
+
+  map.once('mousedown', onDrawStart);
+  document.addEventListener('keydown', cancelDrawOnEsc);
+}
+
+function onDrawStart(e) {
+  if (!drawActive) return;
+  // Only draw on left click (button 0), ignore middle/right
+  if (e.originalEvent && e.originalEvent.button !== 0) {
+    // Re-register for next mousedown
+    map.once('mousedown', onDrawStart);
+    return;
+  }
+  map.dragging.disable();
+  drawStart = e.latlng;
+
+  drawLayer = L.rectangle([drawStart, drawStart], {
+    color: '#8A7355',
+    weight: 2,
+    fillColor: '#8A7355',
+    fillOpacity: 0.15,
+    dashArray: '4,3',
+  }).addTo(map);
+
+  map.on('mousemove', onDrawMove);
+  map.once('mouseup', onDrawEnd);
+}
+
+function onDrawMove(e) {
+  if (!drawStart || !drawLayer) return;
+  drawLayer.setBounds([drawStart, e.latlng]);
+}
+
+function onDrawEnd(e) {
+  if (!drawStart) return;
+  map.off('mousemove', onDrawMove);
+  drawActive = false;
+  document.getElementById('map').style.cursor = '';
+  if (map.dragging) map.dragging.enable();
+
+  const hint = document.getElementById('draw-hint-overlay');
+  if (hint) hint.remove();
+  document.removeEventListener('keydown', cancelDrawOnEsc);
+
+  // Get bounds and snap to 0.05 grid
+  const bounds = drawLayer.getBounds();
+  const n = snapTo005(bounds.getNorth());
+  const s = snapTo005(bounds.getSouth());
+  const e2 = snapTo005(bounds.getEast());
+  const w = snapTo005(bounds.getWest());
+
+  // Update rect to snapped bounds
+  drawLayer.setBounds([[s,w],[n,e2]]);
+
+  // Fill in form fields
+  document.getElementById('req-north').value = n.toFixed(2);
+  document.getElementById('req-south').value = s.toFixed(2);
+  document.getElementById('req-east').value  = e2.toFixed(2);
+  document.getElementById('req-west').value  = w.toFixed(2);
+
+  drawStart = null;
+
+  // Re-open request panel
+  document.getElementById('request-panel').classList.add('open');
+  document.getElementById('request-overlay').style.display = '';
+}
+
+function clearAOI() {
+  ['req-north','req-south','req-east','req-west'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  if (drawLayer) { map.removeLayer(drawLayer); drawLayer = null; }
+}
+
+function cancelDrawOnEsc(e) {
+  if (e.key !== 'Escape') return;
+  drawActive = false;
+  drawStart  = null;
+  map.off('mousemove', onDrawMove);
+  map.off('mouseup',   onDrawEnd);
+  map.dragging.enable();
+  document.getElementById('map').style.cursor = '';
+  const hint = document.getElementById('draw-hint-overlay');
+  if (hint) hint.remove();
+  document.removeEventListener('keydown', cancelDrawOnEsc);
+  if (drawLayer) { map.removeLayer(drawLayer); drawLayer = null; }
+  // Reopen panel
+  document.getElementById('request-panel').classList.add('open');
+  document.getElementById('request-overlay').style.display = '';
+}
+
+// closeRequestPanel is defined earlier — patch it to also clear draw rect
+
+// ── Admin Requests Tab ────────────────────────────────────────────────────────
+const STATUS_LABELS = {
+  new:'New', review:'In Review', accepted:'Accepted', declined:'Declined'
+};
+const STATUS_CLASS = {
+  new:'rs-new', review:'rs-review', accepted:'rs-accepted', declined:'rs-declined'
+};
+
+function renderRequestsList(requests) { startRequestSync(); }
+
+function openRequestDetail(id) {
+  REQUESTS_REF.child(id).once('value').then(snap => {
+    const r = snap.val();
+    if (!r) return;
+    currentRequestId = id;
+    document.getElementById('rd-title').textContent = r.location || 'Request';
+    document.getElementById('rd-status').value = r.status || 'new';
+    document.getElementById('requests-list').style.display = 'none';
+    document.getElementById('request-detail').style.display = '';
+
+    const layers = (r.layers||[]).length ? r.layers.join(', ') : 'None specified';
+    document.getElementById('rd-body').innerHTML = `
+      <div style="display:grid;gap:6px">
+        <div><span style="color:var(--ink4)">Name:</span> ${r.name}</div>
+        <div><span style="color:var(--ink4)">Organization:</span> ${r.org}</div>
+        <div><span style="color:var(--ink4)">Email:</span> ${r.email}</div>
+        ${r.phone ? `<div><span style="color:var(--ink4)">Phone:</span> ${r.phone}</div>` : ''}
+        <div style="margin-top:8px"><span style="color:var(--ink4)">Location:</span> ${r.location}</div>
+        ${r.north ? `<div><span style="color:var(--ink4)">AOI:</span> N${r.north} S${r.south} E${r.east} W${r.west}</div>` : ''}
+        <div><span style="color:var(--ink4)">Priority:</span> ${r.priority||'Not specified'}</div>
+        <div style="margin-top:8px"><span style="color:var(--ink4)">Layers:</span> ${layers}</div>
+        ${r.notes ? `<div style="margin-top:8px"><span style="color:var(--ink4)">Notes:</span> ${r.notes}</div>` : ''}
+        <div style="margin-top:8px;color:var(--ink5);font-size:11px">Submitted ${new Date(r.submitted).toLocaleString()}</div>
+      </div>`;
+  });
+}
+
+
+function backToRequestsList() {
+  document.getElementById('request-detail').style.display = 'none';
+  document.getElementById('requests-list').style.display  = '';
+  currentRequestId = null;
+}
+
+async function deleteRequest() {
+  if (!currentRequestId) return;
+  const title = document.getElementById('rd-title').textContent;
+  if (!confirm(`Delete request for "${title}"?\nThis cannot be undone.`)) return;
+  try {
+    await REQUESTS_REF.child(currentRequestId).remove();
+    backToRequestsList();
+  } catch(e) {
+    alert('Failed to delete request.');
+  }
+}
+
+async function addRequestToMap() {
+  if (!currentRequestId) return;
+  const snap = await REQUESTS_REF.child(currentRequestId).once('value');
+  const r = snap.val();
+  if (!r) return;
+
+  // Build a project from the request
+  const proj = {
+    id:     genId(),
+    name:   r.location || 'Unnamed Request',
+    region: '',
+    year:   new Date().getFullYear().toString(),
+    north:  r.north  || null,
+    south:  r.south  || null,
+    east:   r.east   || null,
+    west:   r.west   || null,
+    tiles:  '',
+    sqkm:   '',
+    notes:  [
+      r.notes ? r.notes : '',
+      r.name  ? 'Requested by: ' + r.name + ' (' + r.org + ')' : '',
+      r.email ? 'Contact: ' + r.email : '',
+      r.priority ? 'Priority: ' + r.priority : '',
+    ].filter(Boolean).join('\n'),
+    layers:  r.layers  || [],
+    sources: [],
+    color:   '#8A7355',
+    status:  'inprogress',
+  };
+
+  // Ask for CCMD before adding
+  const ccmds = ['INDOPACOM','EUCOM','CENTCOM','NORTHCOM','SOUTHCOM',
+                 'AFRICOM','SOCOM','TRANSCOM','STRATCOM','CYBERCOM','SPACECOM'];
+  const ccmd = prompt(
+    'Which combatant command?\n\n' +
+    ccmds.map((c,i) => `${i+1}. ${c}`).join('\n') +
+    '\n\nEnter number or type command name:'
+  );
+  if (ccmd === null) return;
+  const idx = parseInt(ccmd) - 1;
+  proj.region = (idx >= 0 && idx < ccmds.length) ? ccmds[idx] : ccmd.toUpperCase().trim();
+
+  // Add to projects and save
+  projects.push(proj);
+  saveProjects();
+  renderMap(proj.id);
+  renderAdminList();
+
+  // Mark request as accepted
+  await REQUESTS_REF.child(currentRequestId).update({status: 'accepted'});
+  document.getElementById('rd-status').value = 'accepted';
+
+  // Show confirmation
+  const btn = document.getElementById('rd-add-to-map-btn');
+  btn.textContent = '✓ Added to Map';
+  btn.style.background = 'var(--green,#2D5A2D)';
+  btn.disabled = true;
+
+  // Fly to the new project
+  if (proj.north) {
+    setTimeout(() => {
+      switchAdminTab('projects');
+      map.fitBounds([[proj.south,proj.west],[proj.north,proj.east]],
+        {padding:[100,100], maxZoom:8});
+      setTimeout(() => openProjectPopup(proj.id), 500);
+    }, 800);
+  }
+}
+
+function updateRequestStatus() {
+  if (!currentRequestId) return;
+  const status = document.getElementById('rd-status').value;
+  REQUESTS_REF.child(currentRequestId).update({status});
+}
+
+function updateRequestBadge() {
+  REQUESTS_REF.orderByChild('status').equalTo('new').once('value').then(snap => {
+    const count = snap.numChildren();
+    const badge = document.getElementById('req-badge');
+    if (badge) {
+      badge.textContent = count;
+      badge.style.display = count > 0 ? '' : 'none';
+    }
+  });
+}
+
+function startRequestSync() {
+  REQUESTS_REF.once('value', function(snap) {
+    const data = snap.val() || {};
+    const wrap = document.getElementById('requests-list');
+    if (!wrap) return;
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+      wrap.innerHTML = '<div style="padding:24px 20px;font-size:13px;color:var(--ink4);text-align:center">No requests yet.</div>';
+      return;
+    }
+    const sorted = Object.values(data).sort(function(a,b){
+      return new Date(b.submitted) - new Date(a.submitted);
+    });
+    wrap.innerHTML = sorted.map(function(r) {
+      const date = new Date(r.submitted).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const sc = STATUS_CLASS[r.status] || 'rs-new';
+      const sl = STATUS_LABELS[r.status] || 'New';
+      return '<div class="request-item" onclick="openRequestDetail(\''+ r.id +'\')">' +
+        '<div class="request-item-name">' + (r.location||'Unnamed') +
+        ' <span class="request-status ' + sc + '">' + sl + '</span></div>' +
+        '<div class="request-item-meta">' + (r.name||'')+' · '+(r.org||'')+' · '+date+'</div>' +
+        '</div>';
+    }).join('');
+  });
+  // Keep live updates
+  REQUESTS_REF.on('value', function(snap) {
+    updateRequestBadge();
+  });
+}
+
+// ── Firebase config ───────────────────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyB1rVqvy8odHZA5pxdU1Vy9cZKIBHh1vg0",
+  authDomain:        "terrain-pilot-portfolio.firebaseapp.com",
+  projectId:         "terrain-pilot-portfolio",
+  storageBucket:     "terrain-pilot-portfolio.firebasestorage.app",
+  messagingSenderId: "1029757417206",
+  appId:             "1:1029757417206:web:150afb5f2d4d0b67ac9ed7",
+  databaseURL:       "https://terrain-project-portfolio-default-rtdb.firebaseio.com"
+};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+const PROJECTS_REF = db.ref('projects');
+const REQUESTS_REF  = db.ref('requests');
+
+// ── Storage — Firebase Realtime Database ──────────────────────────────────────
+// loadProjects() is called once on init via Firebase listener.
+// saveProjects() writes the full projects array to Firebase.
+// All team members see updates in real time via the onValue listener.
+
+function loadProjects() {
+  // Initial load handled by Firebase listener below — this is a no-op
+  // kept for compatibility with the rest of the code
+}
+
+function saveProjects() {
+  PROJECTS_REF.set(projects)
+    .then(() => {
+      const ind = document.getElementById('sync-indicator');
+      if (ind) {
+        ind.textContent = 'Saved ✓';
+        ind.style.color = 'var(--gold)';
+        ind.style.display = '';
+        setTimeout(() => {
+          ind.textContent = '';
+          ind.style.display = 'none';
+        }, 2500);
+      }
+    })
+    .catch(e => {
+      console.warn('Firebase save error:', e);
+      const ind = document.getElementById('sync-indicator');
+      if (ind) {
+        ind.textContent = 'Save failed — check connection';
+        ind.style.color = 'var(--red, #8B2020)';
+        ind.style.display = '';
+      }
+    });
+}
+
+// ── Real-time listener — updates map when any team member saves ───────────────
+function startRealtimeSync() {
+  PROJECTS_REF.on('value', snapshot => {
+    const data = snapshot.val();
+    const incoming = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+
+    // Only re-render if data actually changed
+    const currentIds  = new Set(projects.map(p => p.id));
+    const incomingIds = new Set(incoming.map(p => p.id));
+    const changed = JSON.stringify(projects) !== JSON.stringify(incoming);
+
+    projects = incoming;
+
+    if (changed) {
+      // Add any new boxes, remove deleted ones
+      renderMap();
+      if (adminMode) renderAdminList();
+      updateCount();
+    }
+  });
+}
+
+function _downloadUpdatedFile() {
+  // Generates a portable copy of this file with data baked in
+  const dataStr = JSON.stringify(projects, null, 2);
+  let html = document.documentElement.outerHTML;
+  // Patch the loadProjects function to return embedded data
+  html = html.replace(
+    /const FIREBASE_CONFIG[\s\S]*?startRealtimeSync\(\);/,
+    'const EMBEDDED_PROJECTS = ' + dataStr + ';\nprojects = JSON.parse(JSON.stringify(EMBEDDED_PROJECTS));'
+  );
+  const blob = new Blob([html], {type: 'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MMA_Project_Map.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+// ── Map rendering ─────────────────────────────────────────────────────────────
+// Rectangles are PERMANENT — they never get removed or redrawn unless
+// a project is explicitly edited or deleted. Popups are separate click targets.
+
+function renderMap(focusId) {
+  // Add any projects that don't have a box yet
+  projects.forEach(p => {
+    if (!p.north || !p.south || !p.east || !p.west) return;
+    if (mapLayers[p.id]) return;  // already on map, skip
+    _addProjectToMap(p);
+  });
+
+  // Remove any boxes for projects that were deleted
+  Object.keys(mapLayers).forEach(id => {
+    if (!projects.find(p => p.id === id)) {
+      map.removeLayer(mapLayers[id].rect);
+      map.removeLayer(mapLayers[id].hit);
+      delete mapLayers[id];
+    }
+  });
+
+  // If a project was edited, refresh its box
+  if (focusId && mapLayers[focusId]) {
+    const p = projects.find(x => x.id === focusId);
+    if (p) {
+      const color = p.color || '#8A7355';
+      mapLayers[focusId].rect.setStyle({color, fillColor: color});
+      mapLayers[focusId].rect.setBounds([[p.south, p.west],[p.north, p.east]]);
+      mapLayers[focusId].hit.setBounds([[p.south, p.west],[p.north, p.east]]);
+      // Refresh popup content
+      mapLayers[focusId].hit.setPopupContent(buildPopupHTML(p));
+    }
+  }
+
+  updateCount();
+}
+
+function _addProjectToMap(p) {
+  const color = p.color || '#8A7355';
+  const bounds = [[p.south, p.west],[p.north, p.east]];
+
+  // Visible rectangle — purely decorative, never removed
+  const rect = L.rectangle(bounds, {
+    color:        color,
+    weight:       2,
+    fillColor:    color,
+    fillOpacity:  0.13,
+    dashArray:    '4,3',
+    interactive:  false,  // no mouse events on the visual layer
+  }).addTo(map);
+
+  // Invisible hit target — handles hover + click + popup
+  const hit = L.rectangle(bounds, {
+    color:       'transparent',
+    fillColor:   'transparent',
+    fillOpacity: 0,
+    weight:      0,
+  }).addTo(map);
+
+  hit.bindPopup(buildPopupHTML(p), {
+    maxWidth:    380,
+    minWidth:    300,
+    autoPan:     true,
+    closeButton: true,
+  });
+
+  hit.on('mouseover', function() {
+    rect.setStyle({fillOpacity: 0.24, weight: 2.5, dashArray: null});
+  });
+  hit.on('mouseout',  function() {
+    rect.setStyle({fillOpacity: 0.13, weight: 2, dashArray: '4,3'});
+  });
+  hit.on('popupclose', function() {
+    // Ensure box stays visible after popup closes
+    rect.setStyle({fillOpacity: 0.13, weight: 2, dashArray: '4,3'});
+  });
+
+  mapLayers[p.id] = {rect, hit};
+}
+
+function openProjectPopup(id) {
+  if (mapLayers[id]) mapLayers[id].hit.openPopup();
+}
+
+function buildPopupHTML(p) {
+  const layers = (p.layers||[]).map(l =>
+    `<span class="popup-layer-tag">${l}</span>`).join('');
+  const sources = (p.sources||[]).map(s =>
+    `<span class="popup-source-tag">${s}</span>`).join('');
+
+  const coverageLine = [
+    p.tiles ? `${p.tiles} tile${p.tiles==1?'':'s'}` : '',
+    p.sqkm  || ''
+  ].filter(Boolean).join('  ·  ');
+
+  return `<div class="popup-card">
+    <div class="popup-header" style="background:${p.color||'#8A7355'}">
+      <div class="popup-region">${p.region||''}${p.year ? ' · '+p.year : ''}</div>
+      <div class="popup-title">${p.name}</div>
+      <div style="margin-top:8px">` + (
+        p.status === 'inprogress' ? '<span class="status-badge status-inprogress">&#9711; In Progress</span>' :
+        p.status === 'upcoming'   ? '<span class="status-badge status-upcoming">&#9654; Upcoming</span>' :
+        p.status === 'paused'     ? '<span class="status-badge status-paused">&#9646;&#9646; On Pause</span>' :
+        '<span class="status-badge status-complete">&#10003; Complete</span>'
+      ) + `</div>
+    </div>
+    <div class="popup-body">
+      ${coverageLine ? `<div class="popup-meta">
+        <div class="popup-meta-item">
+          <div class="popup-meta-label">Coverage</div>
+          <div class="popup-meta-value">${coverageLine}</div>
+        </div>
+      </div>` : ''}
+      ${layers ? `<div class="popup-section-title">Data Layers</div>
+        <div class="popup-layers">${layers}</div>` : ''}
+      ${sources ? `<div class="popup-section-title">Sources</div>
+        <div class="popup-sources">${sources}</div>` : ''}
+${p.notes ? `<div class="popup-section-title">Notes</div>
+        <div class="popup-notes">${p.notes}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function updateCount() {
+  const el = document.getElementById('project-count');
+  el.textContent = projects.length
+    ? `${projects.length} project${projects.length===1?'':'s'}`
+    : '';
+  updateStats();
+}
+
+// ── Admin panel ───────────────────────────────────────────────────────────────
+function renderAdminList() {
+  const list = document.getElementById('admin-list');
+  if (!projects.length) {
+    list.innerHTML = '<div id="admin-empty">No projects yet.<br>Click <strong>+ Add Project</strong> to get started.</div>';
+    return;
+  }
+  list.innerHTML = projects.map(p => `
+    <div class="admin-project-item">
+      <div class="admin-item-dot" style="background:${p.color||'#8A7355'}"></div>
+      <div class="admin-item-info">
+        <div class="admin-item-name">${p.name}</div>
+        <div class="admin-item-region">${[p.region,p.year].filter(Boolean).join(' · ')}${p.status === 'inprogress' ? ' · <span style="color:#B07D1A;font-size:10px">IN PROGRESS</span>' :
+       p.status === 'upcoming'   ? ' · <span style="color:#2D5A6B;font-size:10px">UPCOMING</span>' :
+       p.status === 'paused'     ? ' · <span style="color:#7A5A2A;font-size:10px">ON PAUSE</span>' : ''}</div>
+      </div>
+      <div class="admin-item-actions">
+        <button class="admin-edit-btn" onclick="openEditor('${p.id}');event.stopPropagation()">Edit</button>
+        <button class="admin-delete-btn" onclick="deleteProject('${p.id}');event.stopPropagation()">Delete</button>
+      </div>
+    </div>`).join('');
+
+  // Click row to fly to project
+  list.querySelectorAll('.admin-project-item').forEach((el,i) => {
+    el.addEventListener('click', () => flyToProject(projects[i].id));
+  });
+}
+
+function flyToProject(id) {
+  const p = projects.find(x => x.id===id);
+  if (!p || !p.north) return;
+  map.fitBounds([[p.south,p.west],[p.north,p.east]], {padding:[80,80]});
+  setTimeout(() => openProjectPopup(id), 450);
+}
+
+// ── Password ──────────────────────────────────────────────────────────────────
+function promptAdmin() {
+  if (adminMode) {
+    exitAdmin(); return;
+  }
+  document.getElementById('pw-overlay').classList.add('open');
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').textContent = '';
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
+
+function checkPassword() {
+  const val = document.getElementById('pw-input').value;
+  if (val === ADMIN_PASSWORD) {
+    closePw();
+    enterAdmin();
+  } else {
+    document.getElementById('pw-error').textContent = 'Incorrect password.';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+function closePw() {
+  document.getElementById('pw-overlay').classList.remove('open');
+}
+
+function enterAdmin() {
+  adminMode = true;
+  document.getElementById('admin-toggle-btn').textContent = 'Exit Admin';
+  document.getElementById('admin-toggle-btn').classList.add('active');
+  document.getElementById('admin-panel').classList.add('open');
+  document.getElementById('export-btn').style.display = '';
+  document.getElementById('sync-indicator').style.display = '';
+  renderAdminList();
+}
+
+function exitAdmin() {
+  adminMode = false;
+  document.getElementById('admin-toggle-btn').textContent = 'Admin';
+  document.getElementById('admin-toggle-btn').classList.remove('active');
+  document.getElementById('admin-panel').classList.remove('open');
+  document.getElementById('export-btn').style.display = 'none';
+  document.getElementById('sync-indicator').style.display = 'none';
+}
+
+// ── Editor ────────────────────────────────────────────────────────────────────
+function buildColorSwatches(selectedColor) {
+  const row = document.getElementById('color-row');
+  row.innerHTML = AOI_COLORS.map(c => `
+    <div class="color-swatch ${c.hex===selectedColor?'selected':''}"
+         style="background:${c.hex}"
+         title="${c.name}"
+         onclick="selectColor('${c.hex}',this)"></div>`
+  ).join('');
+}
+
+function selectColor(hex, el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function getSelectedColor() {
+  const el = document.querySelector('.color-swatch.selected');
+  return el ? el.style.background : '#8A7355';
+}
+
+function openEditor(id) {
+  editingId = id;
+  layerTags = [];
+  sourceTags = [];
+
+  const title = document.getElementById('editor-modal-title');
+
+  if (id) {
+    const p = projects.find(x => x.id===id);
+    title.textContent = 'Edit Project';
+    document.getElementById('f-name').value   = p.name   || '';
+    document.getElementById('f-region').value = p.region || '';
+    document.getElementById('f-year').value   = p.year   || '';
+    document.getElementById('f-north').value  = p.north  || '';
+    document.getElementById('f-south').value  = p.south  || '';
+    document.getElementById('f-east').value   = p.east   || '';
+    document.getElementById('f-west').value   = p.west   || '';
+    document.getElementById('f-notes').value  = p.notes  || '';
+    layerTags  = [...(p.layers   || [])];
+    sourceTags = [...(p.sources  || [])];
+    document.getElementById('f-tiles').value = p.tiles || '';
+    document.getElementById('f-sqkm').value  = p.sqkm  || '';
+    document.getElementById('f-status').value = p.status || 'complete';
+    buildColorSwatches(p.color || '#8A7355');
+  } else {
+    title.textContent = 'Add Project';
+    ['f-name','f-region','f-year','f-north','f-south','f-east','f-west','f-notes']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-tiles').value = '';
+    document.getElementById('f-sqkm').value  = '';
+    document.getElementById('f-status').value = 'complete';
+    buildColorSwatches('#8A7355');
+  }
+
+  renderTagsUI();
+  document.getElementById('editor-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-name').focus(), 100);
+}
+
+function closeEditor() {
+  document.getElementById('editor-overlay').classList.remove('open');
+}
+
+function saveProject() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+
+  const proj = {
+    id:     editingId || genId(),
+    name,
+    region: document.getElementById('f-region').value.trim(),
+    year:   document.getElementById('f-year').value.trim(),
+    north:  parseFloat(document.getElementById('f-north').value) || null,
+    south:  parseFloat(document.getElementById('f-south').value) || null,
+    east:   parseFloat(document.getElementById('f-east').value)  || null,
+    west:   parseFloat(document.getElementById('f-west').value)  || null,
+    tiles:      document.getElementById('f-tiles').value.trim(),
+    sqkm:       document.getElementById('f-sqkm').value.trim(),
+    status:     document.getElementById('f-status').value,
+    notes:    document.getElementById('f-notes').value.trim(),
+    layers: [...layerTags],
+    sources:[...sourceTags],
+    color:  getSelectedColor(),
+  };
+
+  if (editingId) {
+    const idx = projects.findIndex(x => x.id===editingId);
+    if (idx>=0) projects[idx] = proj;
+  } else {
+    projects.push(proj);
+  }
+
+  saveProjects();
+  renderMap(proj.id);   // adds new box or refreshes existing one
+  renderAdminList();
+  closeEditor();
+
+  // Fly to new projects; just reopen popup for edits
+  if (proj.north) {
+    if (!editingId) {
+      map.fitBounds([[proj.south,proj.west],[proj.north,proj.east]],
+        {padding:[100,100], maxZoom:8});
+    }
+    setTimeout(() => openProjectPopup(proj.id), 500);
+  }
+}
+
+function deleteProject(id) {
+  if (!confirm('Delete this project? This cannot be undone.')) return;
+  // Remove from map immediately
+  if (mapLayers[id]) {
+    map.removeLayer(mapLayers[id].rect);
+    map.removeLayer(mapLayers[id].hit);
+    delete mapLayers[id];
+  }
+  projects = projects.filter(p => p.id !== id);
+  saveProjects();
+  renderAdminList();
+  updateCount();
+}
+
+// ── Tag inputs ────────────────────────────────────────────────────────────────
+function renderTagsUI() {
+  renderTags('layers-wrap', 'layers-input', layerTags, false);
+  renderTags('sources-wrap', 'sources-input', sourceTags, true);
+}
+
+function renderTags(wrapId, inputId, arr, isSource) {
+  const wrap = document.getElementById(wrapId);
+  const input = document.getElementById(inputId);
+  // Remove existing tags
+  wrap.querySelectorAll('.tag-item').forEach(t => t.remove());
+  // Re-insert before input
+  arr.forEach((tag, i) => {
+    const el = document.createElement('span');
+    el.className = 'tag-item' + (isSource ? ' source-tag' : '');
+    el.innerHTML = `${tag}<button class="tag-remove" onclick="removeTag('${wrapId}','${inputId}',${i},${isSource})">&times;</button>`;
+    wrap.insertBefore(el, input);
+  });
+}
+
+function focusTagInput(id) {
+  document.getElementById(id).focus();
+}
+
+function removeTag(wrapId, inputId, idx, isSource) {
+  const arr = isSource ? sourceTags : layerTags;
+  arr.splice(idx, 1);
+  renderTags(wrapId, inputId, arr, isSource);
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('editor-overlay').classList.contains('open')) return;
+
+  const layerInput  = document.getElementById('layers-input');
+  const sourceInput = document.getElementById('sources-input');
+
+  if (e.key === 'Enter' && document.activeElement === layerInput) {
+    e.preventDefault();
+    const val = layerInput.value.trim();
+    if (val) { layerTags.push(val); layerInput.value = ''; renderTags('layers-wrap','layers-input',layerTags,false); }
+  }
+  if (e.key === 'Enter' && document.activeElement === sourceInput) {
+    e.preventDefault();
+    const val = sourceInput.value.trim();
+    if (val) { sourceTags.push(val); sourceInput.value = ''; renderTags('sources-wrap','sources-input',sourceTags,true); }
+  }
+  if (e.key === 'Escape') {
+    if (document.getElementById('editor-overlay').classList.contains('open')) closeEditor();
+    else if (document.getElementById('pw-overlay').classList.contains('open')) closePw();
+  }
+});
+
+// ── Export client view ────────────────────────────────────────────────────────
+function exportClientView() {
+  const projectsJSON = JSON.stringify(projects, null, 2);
+  let html = document.documentElement.outerHTML;
+  // Embed current project data
+  html = html.replace(
+    /const EMBEDDED_PROJECTS = \[[\s\S]*?\];/,
+    'const EMBEDDED_PROJECTS = ' + projectsJSON + ';'
+  );
+  // Strip admin UI for client version
+  html = html
+    .replace(/id="admin-toggle-btn"[^>]*>[^<]*<\/button>/, '')
+    .replace(/id="save-file-btn"[^>]*>[^<]*<\/button>/, '')
+    .replace(/id="export-btn"[^>]*>[^<]*<\/button>/, '')
+    .replace(/<div id="admin-panel"[\s\S]*?<\/div>\s*\n\s*<!-- Project editor/, '<!-- Project editor')
+    .replace('Terrain Pilot \u2014 Project Portfolio', 'Terrain Pilot \u2014 Capabilities');
+  const blob = new Blob([html], {type: 'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MMA_Geospatial_Capabilities.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
+
+// ── Geotile → km² calculator ─────────────────────────────────────────────────
+// A 1°×1° tile's area varies with latitude. We use the midpoint of the AOI
+// if coordinates are filled in, otherwise fall back to equatorial approximation.
+function calcCoverage() {
+  const tiles = parseFloat(document.getElementById('f-tiles').value);
+  const out   = document.getElementById('f-sqkm');
+  if (!tiles || isNaN(tiles)) { out.value = '—'; return; }
+
+  // Try to get AOI midpoint latitude for accuracy
+  const north = parseFloat(document.getElementById('f-north').value);
+  const south = parseFloat(document.getElementById('f-south').value);
+  let latMid  = 0;
+  if (!isNaN(north) && !isNaN(south)) latMid = (north + south) / 2;
+
+  // Area of 1°×1° cell at given latitude
+  // Width  = 1° lon = 111.32 × cos(lat) km
+  // Height = 1° lat = 110.574 km (approximately constant)
+  const kmPerDegLat = 110.574;
+  const kmPerDegLon = 111.320 * Math.cos(latMid * Math.PI / 180);
+  const kmPerTile   = kmPerDegLat * kmPerDegLon;
+  const total       = Math.round(tiles * kmPerTile);
+
+  out.value = total.toLocaleString() + ' km²';
+}
+
+// Recalculate when lat fields change
+['f-north','f-south'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', calcCoverage);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+// ── Search, Filter & Stats ────────────────────────────────────────────────────
+
+let activeFilters = { search: '', ccmd: '', status: '' };
+
+function applyFilters() {
+  activeFilters.search = document.getElementById('search-input').value.toLowerCase().trim();
+  activeFilters.ccmd   = document.getElementById('filter-ccmd').value;
+  activeFilters.status = document.getElementById('filter-status').value;
+
+  const hasFilter = activeFilters.search || activeFilters.ccmd || activeFilters.status;
+  document.getElementById('clear-filters-btn').style.display = hasFilter ? '' : 'none';
+
+  projects.forEach(p => {
+    const matchSearch = !activeFilters.search ||
+      (p.name||'').toLowerCase().includes(activeFilters.search) ||
+      (p.region||'').toLowerCase().includes(activeFilters.search) ||
+      (p.notes||'').toLowerCase().includes(activeFilters.search);
+    const matchCCMD   = !activeFilters.ccmd   || p.region === activeFilters.ccmd;
+    const matchStatus = !activeFilters.status || p.status === activeFilters.status || (!p.status && activeFilters.status === 'complete');
+    const visible = matchSearch && matchCCMD && matchStatus;
+    if (mapLayers[p.id]) {
+      mapLayers[p.id].rect.setStyle({fillOpacity: visible ? 0.13 : 0, opacity: visible ? 1 : 0});
+      mapLayers[p.id].hit.setStyle({fillOpacity: 0, opacity: visible ? 1 : 0});
+    }
+  });
+}
+
+function clearFilters() {
+  document.getElementById('search-input').value  = '';
+  document.getElementById('filter-ccmd').value   = '';
+  document.getElementById('filter-status').value = '';
+  activeFilters = { search: '', ccmd: '', status: '' };
+  document.getElementById('clear-filters-btn').style.display = 'none';
+  projects.forEach(p => {
+    if (mapLayers[p.id]) {
+      mapLayers[p.id].rect.setStyle({fillOpacity: 0.13, opacity: 1});
+      mapLayers[p.id].hit.setStyle({fillOpacity: 0,    opacity: 1});
+    }
+  });
+}
+
+function updateStats() {
+  const total      = projects.length;
+  const complete   = projects.filter(p => !p.status || p.status === 'complete').length;
+  const inprogress = projects.filter(p => p.status === 'inprogress').length;
+  const upcoming   = projects.filter(p => p.status === 'upcoming').length;
+  const paused     = projects.filter(p => p.status === 'paused').length;
+  document.getElementById('stat-total').textContent      = total;
+  document.getElementById('stat-complete').textContent   = complete;
+  document.getElementById('stat-inprogress').textContent = inprogress;
+  document.getElementById('stat-upcoming').textContent   = upcoming;
+  document.getElementById('stat-paused').textContent     = paused;
+  const counts = {};
+  projects.forEach(p => { if (p.region) counts[p.region] = (counts[p.region]||0)+1; });
+  const bd = Object.entries(counts).sort((a,b)=>b[1]-a[1])
+    .map(([cmd,n]) => '<span style="font-weight:500;color:var(--ink2)">'+cmd+'</span> '+n)
+    .join('<span style="margin:0 6px;color:var(--ink5)">·</span>');
+  document.getElementById('stat-ccmd-breakdown').innerHTML = bd;
+}
+
+
+// ── Load from Firebase
+PROJECTS_REF.once('value').then(snapshot => {
+  const data = snapshot.val();
+  projects = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+
+  renderMap();
+  updateCount();
+
+  // Fit map to show all projects
+  const valid = projects.filter(p => p.north && p.south && p.east && p.west);
+  if (valid.length) {
+    const allBounds = valid.map(p => [[p.south,p.west],[p.north,p.east]]);
+    const combined  = allBounds.reduce((acc, b) => [
+      [Math.min(acc[0][0], b[0][0]), Math.min(acc[0][1], b[0][1])],
+      [Math.max(acc[1][0], b[1][0]), Math.max(acc[1][1], b[1][1])]
+    ]);
+    map.fitBounds(combined, {padding:[80,80]});
+  }
+
+  // Start listening for real-time updates from teammates
+  startRealtimeSync();
+}).catch(e => {
+  console.error('Firebase load error:', e);
+  renderMap();
+});
+</script>
+</body>
+</html>
