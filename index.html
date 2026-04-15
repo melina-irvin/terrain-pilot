@@ -1130,10 +1130,10 @@ function switchAdminTab(tab) {
         const date = new Date(r.submitted).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         const sc = STATUS_CLASS[r.status]||'rs-new';
         const sl = STATUS_LABELS[r.status]||'New';
-        return '<div class="request-item" onclick="openRequestDetail(\''+r.id+'\')" style="padding:14px 20px;border-bottom:1px solid var(--rule);cursor:pointer">'+
-          '<div style="font-size:13px;font-weight:500;color:var(--ink)">'+
+        return '<div onclick="openRequestDetail(\''+r.id+'\')" style="padding:14px 20px;border-bottom:1px solid #E2DED9;cursor:pointer;background:#fff">'+
+          '<div style="font-size:13px;font-weight:500;color:#1C1C1A">'+
           (r.location||'Unnamed')+' <span class="request-status '+sc+'">'+sl+'</span></div>'+
-          '<div style="font-size:11px;color:var(--ink4);margin-top:2px">'+
+          '<div style="font-size:11px;color:#AEABA4;margin-top:2px">'+
           (r.name||'')+' · '+(r.org||'')+' · '+date+'</div></div>';
       }).join('');
     }).catch(function(e) {
