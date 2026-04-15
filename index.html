@@ -165,6 +165,11 @@ html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;font-weight:400
 #admin-list{
   flex:1;overflow-y:auto;padding:12px 0;
 }
+#admin-requests{
+  flex:1;overflow-y:auto;
+  display:none;
+  flex-direction:column;
+}
 
 .admin-project-item{
   padding:12px 20px;
@@ -523,6 +528,15 @@ html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;font-weight:400
 
 
 /* ── REQUEST PANEL ── */
+#basemap-toggle-btn{
+  font-size:11px;font-weight:500;
+  color:var(--ink3);background:var(--input);
+  border:1px solid var(--rule);border-radius:5px;
+  padding:5px 12px;cursor:pointer;
+  transition:all .15s;margin-right:4px;
+}
+#basemap-toggle-btn:hover{border-color:var(--gold);color:var(--gold)}
+#basemap-toggle-btn.imagery{background:var(--ink);color:#fff;border-color:var(--ink)}
 #request-btn{
   font-size:11px;font-weight:500;
   color:#fff;background:var(--gold);
@@ -637,6 +651,7 @@ html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;font-weight:400
 .request-item{
   padding:14px 20px;border-bottom:1px solid var(--rule);
   cursor:pointer;transition:background .1s;
+  display:block;width:100%;
 }
 .request-item:hover{background:var(--input)}
 .request-item-name{font-size:13px;font-weight:500;color:var(--ink)}
@@ -746,6 +761,7 @@ html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;font-weight:400
   <div id="project-count"></div>
   <span id="sync-indicator" style="display:none;font-size:11px;color:var(--ink4);margin-right:8px">Saved</span>
   <button id="export-btn" style="display:none" onclick="exportClientView()">Export Client View</button>
+  <button id="basemap-toggle-btn" onclick="toggleBasemap()" title="Toggle imagery">&#9782; Map</button>
   <button id="request-btn" onclick="openRequestPanel()">Request Terrain</button>
   <button id="admin-toggle-btn" onclick="promptAdmin()">Admin</button>
 </div>
@@ -1013,10 +1029,45 @@ const map = L.map('map', {
   worldCopyJump: false,
 });
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+const tileVoyager = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
   maxZoom: 19, subdomains: 'abcd',
   attribution: '© OpenStreetMap contributors © CARTO'
-}).addTo(map);
+});
+
+const tileImagery = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19,
+  attribution: '© Esri, Maxar, Earthstar Geographics'
+});
+
+const tileLabels = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19,
+  attribution: ''
+});
+
+tileVoyager.addTo(map);
+let imageryMode = false;
+
+function toggleBasemap() {
+  const btn = document.getElementById('basemap-toggle-btn');
+  if (!imageryMode) {
+    map.removeLayer(tileVoyager);
+    tileImagery.addTo(map);
+    tileLabels.addTo(map);
+    btn.textContent = '\u2708 Imagery';
+    btn.classList.add('imagery');
+    imageryMode = true;
+  } else {
+    map.removeLayer(tileImagery);
+    map.removeLayer(tileLabels);
+    tileVoyager.addTo(map);
+    btn.textContent = '\u9782 Map';
+    btn.classList.remove('imagery');
+    imageryMode = false;
+  }
+}
 
 
 
@@ -1041,28 +1092,32 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.p
 
 // ── Admin tab switching ───────────────────────────────────────────────────────
 function switchAdminTab(tab) {
+  // Update tab buttons
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+  const tabBtn = document.getElementById('tab-' + tab);
+  if (tabBtn) tabBtn.classList.add('active');
 
-  const panels = {
-    projects: 'admin-list',
-    requests: 'admin-requests',
-  };
-  const headers = {
-    projects: 'admin-tab-projects-header',
-  };
-  Object.entries(panels).forEach(([t, id]) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = t === tab ? (t==='projects'?'':'flex') : 'none';
-  });
+  // Hide all panels explicitly
+  document.getElementById('admin-list').style.display        = 'none';
+  document.getElementById('admin-requests').style.display    = 'none';
+
+  // Hide all headers
+  const ph = document.getElementById('admin-tab-projects-header');
+  if (ph) ph.style.display = 'none';
+
   if (tab === 'projects') {
-    document.getElementById('admin-list').style.display = '';
+    document.getElementById('admin-list').style.display = 'block';
+    if (ph) ph.style.display = 'flex';
+  } else if (tab === 'requests') {
+    const panel = document.getElementById('admin-requests');
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'column';
+    panel.style.flex = '1';
+    panel.style.overflowY = 'auto';
+    document.getElementById('requests-list').style.display = 'block';
+    document.getElementById('request-detail').style.display = 'none';
+    startRequestSync();
   }
-  Object.entries(headers).forEach(([t, id]) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = t === tab ? 'flex' : 'none';
-  });
-  if (tab === 'requests') startRequestSync();
 }
 
 
@@ -1236,13 +1291,19 @@ function startAOIDraw() {
   // Remove existing draw rect if any
   if (drawLayer) { map.removeLayer(drawLayer); drawLayer = null; }
 
-  map.dragging.disable();
   map.once('mousedown', onDrawStart);
   document.addEventListener('keydown', cancelDrawOnEsc);
 }
 
 function onDrawStart(e) {
   if (!drawActive) return;
+  // Only draw on left click (button 0), ignore middle/right
+  if (e.originalEvent && e.originalEvent.button !== 0) {
+    // Re-register for next mousedown
+    map.once('mousedown', onDrawStart);
+    return;
+  }
+  map.dragging.disable();
   drawStart = e.latlng;
 
   drawLayer = L.rectangle([drawStart, drawStart], {
@@ -1267,7 +1328,7 @@ function onDrawEnd(e) {
   map.off('mousemove', onDrawMove);
   drawActive = false;
   document.getElementById('map').style.cursor = '';
-  map.dragging.enable();
+  if (map.dragging) map.dragging.enable();
 
   const hint = document.getElementById('draw-hint-overlay');
   if (hint) hint.remove();
@@ -1473,7 +1534,8 @@ function updateRequestStatus() {
 }
 
 function updateRequestBadge() {
-  REQUESTS_REF.orderByChild('status').equalTo('new').once('value').then(snap => {
+  const ref = window._REQUESTS_REF; if (!ref) return;
+  ref.orderByChild('status').equalTo('new').once('value').then(snap => {
     const count = snap.numChildren();
     const badge = document.getElementById('req-badge');
     if (badge) {
@@ -1483,8 +1545,18 @@ function updateRequestBadge() {
   });
 }
 
+let requestSyncActive = false;
 function startRequestSync() {
-  REQUESTS_REF.on('value', snap => {
+  // Wait for Firebase to be ready, set up listener only once
+  if (requestSyncActive) return;
+  const ref = window._REQUESTS_REF;
+  if (!ref) {
+    // Firebase not ready yet — retry after short delay
+    setTimeout(startRequestSync, 300);
+    return;
+  }
+  requestSyncActive = true;
+  ref.on('value', snap => {
     const data = snap.val() || {};
     renderRequestsList(data);
     updateRequestBadge();
@@ -1506,6 +1578,7 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
 const PROJECTS_REF = db.ref('projects');
 const REQUESTS_REF  = db.ref('requests');
+window._REQUESTS_REF = REQUESTS_REF;
 
 // ── Storage — Firebase Realtime Database ──────────────────────────────────────
 // loadProjects() is called once on init via Firebase listener.
