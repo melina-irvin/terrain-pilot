@@ -169,6 +169,10 @@ html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;font-weight:400
   flex:1;overflow-y:auto;
   display:none;
   flex-direction:column;
+  height:100%;
+}
+#admin-requests #requests-list{
+  flex:1;overflow-y:auto;
 }
 
 .admin-project-item{
@@ -1110,9 +1114,9 @@ function switchAdminTab(tab) {
     if (ph) ph.style.display = 'flex';
   } else if (tab === 'requests') {
     const panel = document.getElementById('admin-requests');
-    panel.style.cssText = 'display:flex !important;flex-direction:column;flex:1;overflow-y:auto;min-height:200px';
+    panel.style.cssText = 'display:flex !important;flex-direction:column;flex:1;overflow-y:auto;height:100%';
     const list = document.getElementById('requests-list');
-    list.style.cssText = 'display:block !important;min-height:100px';
+    list.style.cssText = 'display:block !important;overflow-y:auto;flex:1';
     list.innerHTML = '<div style="padding:12px 20px;font-size:12px;color:var(--ink4)">Loading...</div>';
     document.getElementById('request-detail').style.display = 'none';
     firebase.database().ref('requests').once('value').then(function(snap) {
