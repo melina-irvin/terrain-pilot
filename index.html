@@ -1110,13 +1110,31 @@ function switchAdminTab(tab) {
     if (ph) ph.style.display = 'flex';
   } else if (tab === 'requests') {
     const panel = document.getElementById('admin-requests');
-    panel.style.display = 'flex';
-    panel.style.flexDirection = 'column';
-    panel.style.flex = '1';
-    panel.style.overflowY = 'auto';
-    document.getElementById('requests-list').style.display = 'block';
+    panel.style.cssText = 'display:flex !important;flex-direction:column;flex:1;overflow-y:auto;min-height:200px';
+    const list = document.getElementById('requests-list');
+    list.style.cssText = 'display:block !important;min-height:100px';
+    list.innerHTML = '<div style="padding:12px 20px;font-size:12px;color:var(--ink4)">Loading...</div>';
     document.getElementById('request-detail').style.display = 'none';
-    startRequestSync();
+    firebase.database().ref('requests').once('value').then(function(snap) {
+      const data = snap.val();
+      if (!data) {
+        list.innerHTML = '<div style="padding:24px 20px;font-size:13px;color:var(--ink4);text-align:center">No requests yet.</div>';
+        return;
+      }
+      const sorted = Object.values(data).sort(function(a,b){ return new Date(b.submitted)-new Date(a.submitted); });
+      list.innerHTML = sorted.map(function(r) {
+        const date = new Date(r.submitted).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        const sc = STATUS_CLASS[r.status]||'rs-new';
+        const sl = STATUS_LABELS[r.status]||'New';
+        return '<div class="request-item" onclick="openRequestDetail(\''+r.id+'\')" style="padding:14px 20px;border-bottom:1px solid var(--rule);cursor:pointer">'+
+          '<div style="font-size:13px;font-weight:500;color:var(--ink)">'+
+          (r.location||'Unnamed')+' <span class="request-status '+sc+'">'+sl+'</span></div>'+
+          '<div style="font-size:11px;color:var(--ink4);margin-top:2px">'+
+          (r.name||'')+' · '+(r.org||'')+' · '+date+'</div></div>';
+      }).join('');
+    }).catch(function(e) {
+      list.innerHTML = '<div style="padding:20px;color:#8B2020;font-size:12px">Error: '+e.message+'</div>';
+    });
   }
 }
 
